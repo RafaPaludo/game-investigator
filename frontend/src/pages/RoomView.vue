@@ -15,14 +15,14 @@
       >
         <v-card>
           <v-card-title>
-            Jogadores 1 / 5
+            Jogadores {{ players.length }} / 5
           </v-card-title>
     
-          <v-card-text>
-            {{ players }}
-            Jogador 1
-            Jogador 2
-            Jogador 3
+          <v-card-text
+            v-for="player in players"
+            :key="player.id"
+          >
+            {{ player.username }}
           </v-card-text>
         </v-card>
       </v-col>
@@ -32,7 +32,7 @@
         sm="9"
       >
         <v-sheet class="ma-2 pa-2">
-          Configs
+          <v-btn @click="initGame">Iniciar</v-btn>
         </v-sheet>
       </v-col>
     </v-row>
@@ -60,6 +60,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useSocket } from '@/composables/socket'
 import { useRouter, useRoute } from 'vue-router'
 import { useRoom } from '@/composables/room';
+import { useGame } from '@/composables/game';
 import { useUserStore } from '@/stores/userStore';
 import type { SocketApiResponse } from '@/types/api';
 import type { Room } from '@/types/room';
@@ -68,6 +69,7 @@ import type { Player } from '@/types/player';
 // Data
 const { socket } = useSocket()
 const { joinRoom, updateRoom } = useRoom()
+const { startGame } = useGame();
 const userStore = useUserStore();
 const router = useRouter()
 const route = useRoute()
@@ -80,21 +82,31 @@ const props = defineProps({
   code: { type: String, required: true }
 })
 
+// Computed
+
 // Functions
 const goBack = () => {
   socket.emit("leave-room", { roomCode: props.code });
   router.push("/");
 }
 
+const initGame = () => {
+  startGame(props.code, (response: SocketApiResponse) => {
+    if (response.status === 'error') {
+      snackbar.value = true;
+      snackBarText.value = response.message || "Houve algum problema ao entrar iniciar o jogo!"; // Exibir erro para o usuário
+    }
+
+    router.push({ name: 'game', params: { code: props.code } });
+  });
+};
+
 onMounted(() => {
   if (!socket.id) {
     return router.push({ name: 'guest', params: { code: route.params.code } });
   }
 
-  updateRoom((room: Room) => {
-    debugger
-    players.value = room?.players || []
-  });
+  updateRoom((room: Room) => players.value = room?.players || []);
 
   joinRoom(props.code, userStore.username, (response: SocketApiResponse) => {
     if (response.status === 'error') {

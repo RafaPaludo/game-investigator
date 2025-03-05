@@ -7,5 +7,5 @@ export interface Room {
     name: string;
   };
   players: Player[];
-  started: boolean;
+  game: boolean;
 }
