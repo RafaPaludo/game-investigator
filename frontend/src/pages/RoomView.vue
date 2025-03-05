@@ -36,6 +36,22 @@
         </v-sheet>
       </v-col>
     </v-row>
+
+    <v-snackbar
+      v-model="snackbar"
+    >
+      {{ snackBarText }}
+
+      <template #actions>
+        <v-btn
+          color="red"
+          variant="text"
+          @click="snackbar = false"
+        >
+          Fechar
+        </v-btn>
+      </template>
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -43,18 +59,21 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useSocket } from '@/composables/socket'
 import { useRouter, useRoute } from 'vue-router'
-interface socketResponse {
-  success?: boolean;
-  roomCode?: string;
-  error?: string;
-  message?: string;
-}
+import { useRoom } from '@/composables/room';
+import { useUserStore } from '@/stores/userStore';
+import type { SocketApiResponse } from '@/types/api';
+import type { Room } from '@/types/room';
+import type { Player } from '@/types/player';
 
 // Data
 const { socket } = useSocket()
+const { joinRoom, updateRoom } = useRoom()
+const userStore = useUserStore();
 const router = useRouter()
 const route = useRoute()
-const players = ref([])
+const players = ref<Player[]>([]);
+const snackbar = ref(false);
+const snackBarText = ref('');
 
 // Props
 const props = defineProps({
@@ -72,16 +91,15 @@ onMounted(() => {
     return router.push({ name: 'guest', params: { code: route.params.code } });
   }
 
-  socket.on("update-room", (data) => {
-    console.log(data);
-    players.value = data.players
+  updateRoom((room: Room) => {
+    debugger
+    players.value = room?.players || []
   });
 
-  socket.emit("join-room", { roomCode: props.code }, (response: socketResponse) => {
-    if (response.error) {
-      console.log("Erro")
-    } else {
-      console.log("Sucesso")
+  joinRoom(props.code, userStore.username, (response: SocketApiResponse) => {
+    if (response.status === 'error') {
+      snackbar.value = true;
+      snackBarText.value = response.message || "Houve algum problema ao entrar na sala!"; // Exibir erro para o usuário
     }
   });
 });

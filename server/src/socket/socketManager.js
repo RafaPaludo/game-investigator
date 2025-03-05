@@ -9,25 +9,25 @@ export default function socketManager(io) {
       const player = new Player(socket.id, username);
       const room = RoomService.createRoom(player);
       
-      callback({ success: true, roomCode: room.code });
+      callback({ status: "success", data: { roomCode: room.code } });
     });
 
     socket.on("join-room", ({ roomCode, username }, callback) => {
       const room = RoomService.getRoom(roomCode);
 
-      if (!room) return callback({ error: true, message: "Sala não encontrada" });
+      if (!room) return callback({ status: "error", message: "Sala não encontrada" });
 
       const player = new Player(socket.id, username);
       const added = room.addPlayer(player);
 
       if (added) {
         socket.join(roomCode);
-        io.to(roomCode).emit("update-room", { players: room.players }); // Notifica a sala inteira
+        io.to(roomCode).emit("update-room", room); // Notifica a sala inteira
 
-        return callback({ success: true });
+        return callback({ status: "success" });
       }
 
-      callback({ error: true, message: "Sala cheia" });
+      callback({ status: "error", message: "Sala cheia" });
     });
 
     socket.on("leave-room", ({ roomCode }) => {
@@ -35,7 +35,7 @@ export default function socketManager(io) {
 
       if (room) {
         room.removePlayer(socket.id);
-        io.to(roomCode).emit("update-room", { players: room.players });
+        io.to(roomCode).emit("update-room", room); // Notifica a sala inteira
       }
     });
 
@@ -43,9 +43,9 @@ export default function socketManager(io) {
       const room = RoomService.getRoom(roomCode);
 
       if (room) {
-        callback({ success: true, roomCode: room.code });
+        callback({ status: "success", data: { roomCode: room.code } });
       }
-      callback({ error: true, message: "Sala não encontrada." });
+      callback({ status: "error", message: "Sala não encontrada." });
     });
 
     socket.on("disconnect", () => {

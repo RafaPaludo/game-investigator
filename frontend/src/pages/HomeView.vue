@@ -14,7 +14,7 @@
       >
         <v-form @submit.prevent>
           <v-text-field
-            v-model="username"
+            v-model="userStore.username"
             label="Nome"
           />
           
@@ -37,6 +37,7 @@
             class="mt-2"
             type="submit"
             block
+            :disabled="!userStore.username"
             @click="createNewRoom"
           >
             Criar nova Sala
@@ -64,22 +65,17 @@
 </template>
 
 <script lang="ts" setup>
-interface socketResponse {
-  success?: boolean;
-  roomCode?: string;
-  error?: string;
-  message?: string;
-}
-
 // Imports
 import { ref } from 'vue';
-import { useRouter } from 'vue-router'
-import { useSocket } from '@/composables/socket'
+import { useRouter } from 'vue-router';
+import { useRoom } from '@/composables/room';
+import type { SocketApiResponse } from '@/types/api';
+import { useUserStore } from '@/stores/userStore'
 
 // Data
 const router = useRouter()
-const { socket } = useSocket()
-const username = ref('');
+const userStore = useUserStore();
+const { getRoom, createRoom } = useRoom()
 const roomCode = ref('');
 const snackbar = ref(false);
 const snackBarText = ref('');
@@ -89,11 +85,8 @@ const snackBarText = ref('');
  * Função para entrar na sala.
  */
 const enterRoom = () => {
-  socket.emit(
-    'get-room',
-    { roomCode: roomCode.value },
-    (response: socketResponse) => {
-      if (response.error) {
+  getRoom(roomCode.value, (response: SocketApiResponse) => {
+      if (response.status === "error") {
         snackbar.value = true;
         snackBarText.value = response.message || "Sala não encontrada."; // Exibir erro para o usuário
       } else {
@@ -106,9 +99,9 @@ const enterRoom = () => {
  * Função para criar uma nova sala.
  */
 const createNewRoom = () => {
-  socket.emit('create-room', { username: username.value }, (response: socketResponse) => {
-    if (response.success && response.roomCode) {
-      roomCode.value = response.roomCode;
+  createRoom(userStore.username, (response: SocketApiResponse) => {
+    if (response.status === "success" && response.data.roomCode) {
+      roomCode.value = response.data.roomCode;
       enterRoom();
     }
   });

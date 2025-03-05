@@ -14,7 +14,7 @@
       >
         <v-form @submit.prevent>
           <v-text-field
-            v-model="username"
+            v-model="userStore.username"
             label="Nome"
           />
           
@@ -22,7 +22,8 @@
             class="mt-2"
             type="submit"
             block
-            @click="joinRoom"
+            :disabled="!userStore.username"
+            @click="enterRoom"
           >
             Entrar na Sala
           </v-btn>
@@ -49,23 +50,18 @@
 </template>
 
 <script lang="ts" setup>
-interface socketResponse {
-  success?: boolean;
-  roomCode?: string;
-  error?: string;
-  message?: string;
-}
-
 // Imports
 import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router'
-import { useSocket } from '@/composables/socket'
+import { useRoom } from '@/composables/room';
+import { useUserStore } from '@/stores/userStore'
+import type { SocketApiResponse } from '@/types/api';
 
 // Data
 const router = useRouter()
 const route = useRoute()
-const { socket } = useSocket()
-const username = ref('');
+const { getRoom } = useRoom()
+const userStore = useUserStore();
 const snackbar = ref(false);
 const snackBarText = ref('');
 
@@ -73,16 +69,15 @@ const snackBarText = ref('');
 /**
  * Função para entrar na sala.
  */
-const joinRoom = () => {
-  socket.emit(
-    'join-room',
-    { roomCode: route.params.code, username: username.value },
-    (response: socketResponse) => {
-      if (response.error) {
+ const enterRoom = () => {
+  const roomCode = typeof(route.params.code) === 'string' ? route.params.code : '';
+
+  getRoom(roomCode, (response: SocketApiResponse) => {
+      if (response.status === "error") {
         snackbar.value = true;
         snackBarText.value = response.message || "Sala não encontrada."; // Exibir erro para o usuário
       } else {
-        router.push({ name: 'room', params: { code: route.params.code } });
+        router.push({ name: 'room', params: { code: roomCode } });
       }
   });
 }
