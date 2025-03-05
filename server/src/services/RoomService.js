@@ -19,7 +19,7 @@ class RoomService {
 
   removeRoom(code) {
     this.rooms.delete(code);
-  }
+  }  
 }
 
 export default new RoomService();

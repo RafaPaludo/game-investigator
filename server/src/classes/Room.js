@@ -3,11 +3,11 @@ export default class Room {
     this.code = code; // Código único da sala
     this.owner = owner; // Criador da sala
     this.players = []; // Lista de jogadores
-    this.started = false; // Status do jogo
+    this.game = null; // Jogo
   }
 
   addPlayer(player) {
-    if (this.players.length < 6) {
+    if (this.players.length <= 5) {
       this.players.push(player);
       return true;
     }

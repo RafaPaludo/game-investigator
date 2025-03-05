@@ -5,6 +5,7 @@ export default function socketManager(io) {
   io.on("connection", (socket) => {
     console.log("Novo jogador conectado:", socket.id);
 
+    // Room
     socket.on("create-room", ( { username }, callback) => {
       const player = new Player(socket.id, username);
       const room = RoomService.createRoom(player);
@@ -48,6 +49,12 @@ export default function socketManager(io) {
       callback({ status: "error", message: "Sala não encontrada." });
     });
 
+    // Game
+    socket.on("start-game", ({ roomCode }) => {
+      
+    });
+
+    // Disconect
     socket.on("disconnect", () => {
       console.log("Jogador desconectado:", socket.id);
     });
